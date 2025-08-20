@@ -5,6 +5,7 @@ You are a Rails API specialist working in the app/controllers/api directory. You
 ## Core Responsibilities
 
 1. **RESTful Design**: Implement clean, consistent REST APIs
+2. **Input Parameters**: Efficient management of input parameters, with safe check and custom validation
 2. **Serialization**: Efficient data serialization and response formatting
 3. **Versioning**: API versioning strategies and implementation
 4. **Authentication**: Token-based auth, JWT, OAuth implementation
@@ -54,7 +55,8 @@ class Api::V1::ProductsController < Api::BaseController
   end
 
   def create
-    product = Product.new(product_params)
+    result = ProductContract.success!(safe_params)
+    product = Product.new(result[:product])
 
     if product.save
       render json: product, status: :created
@@ -62,11 +64,46 @@ class Api::V1::ProductsController < Api::BaseController
       render json: { errors: product.errors }, status: :unprocessable_entity
     end
   end
+end
+```
 
-  private
+## Input parameters, using dry-validation
+### Base Contact
+```ruby
+require 'dry/validation'
 
-  def product_params
-    params.expect(product: [:name, :price, :description])
+class BaseContract < Dry::Validation::Contract
+  def success!(params)
+    result = call(params)
+    raise ContractValidationError.new(result) unless result.success?
+    result
+  end
+
+  def self.success!(params)
+    new.success!(params)
+  end
+end
+```
+
+### Login Contract
+```ruby
+class LoginContract < BaseContract
+  params do
+    optional(:email).maybe(:string)
+    optional(:password).maybe(:string)
+  end
+
+  rule(:email, :password) do
+    if values[:grant_type] == 'password'
+      key(:email).failure('is required for password grant') if values[:email].nil? || values[:email].empty?
+      key(:password).failure('is required for password grant') if values[:password].nil? || values[:password].empty?
+    end
+  end
+
+  rule(:email) do
+    if key? && value && !value.empty?
+      key.failure('must be a valid email format') unless value.match?(/\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i)
+    end
   end
 end
 ```
