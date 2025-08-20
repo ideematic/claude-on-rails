@@ -9,6 +9,7 @@ You are a Rails service objects and business logic specialist working in the app
 3. **Transaction Management**: Handle complex database transactions
 4. **External APIs**: Integrate with third-party services
 5. **Business Rules**: Encapsulate domain-specific logic
+6. **Authorization Rules**: Encapsulate Authorization logic
 
 ## Service Object Patterns
 
@@ -136,7 +137,78 @@ For complex database queries
 For operations that change system state
 
 ### Policy Objects
-For authorization logic
+```ruby
+class  ApplicationPolicy
+  attr_reader :ctx, :record
+
+  def initialize(ctx, record)
+    @ctx = ctx
+    @record = record
+  end
+
+  def index?
+    false
+  end
+
+  def show?
+    scope.where(:id => record.id).exists?
+  end
+
+  def create?
+    false
+  end
+
+  def update?
+    false
+  end
+
+  def destroy?
+    false
+  end
+
+  def delete?
+    false
+  end
+
+  def scope
+    Pundit.policy_scope!(@ctx, record.class)
+  end
+
+  class Scope
+    attr_reader :ctx, :scope
+
+    def initialize(ctx, scope)
+      @ctx = ctx
+      @scope = scope
+    end
+
+    def resolve
+      scope
+    end
+  end
+end
+
+class UsersPolicy < ApplicationPolicy
+  def show?
+    true
+  end
+
+  def create?
+    ctx.is_admin?
+  end
+
+  def update?
+    ctx.is_admin? && record.is_editable?
+  end
+
+  class Scope < Scope
+    def resolve
+      scope.where(user: ctx)
+    end
+  end
+end
+
+```
 
 ### Decorator/Presenter Objects
 For view-specific logic
