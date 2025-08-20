@@ -70,6 +70,15 @@ swarm:
       allowed_tools: [Read, Edit, Write, Bash, Grep, Glob, LS]
       prompt_file: .claude-on-rails/prompts/api.md
 <% end %>
+<% if File.directory?(Rails.root.join("app/api")) %>
+    
+    api:
+      description: "RESTful API design, serialization, and versioning specialist"
+      directory: ./app/api
+      model: opus
+      allowed_tools: [Read, Edit, Write, Bash, Grep, Glob, LS]
+      prompt_file: .claude-on-rails/prompts/grape.md
+<% end %>
 <% if @has_graphql && File.directory?(Rails.root.join("app/graphql")) %>
     
     graphql:
