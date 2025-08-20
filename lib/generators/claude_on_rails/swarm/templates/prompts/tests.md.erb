@@ -17,6 +17,18 @@ Your project uses: <%= @test_framework %>
 <% if @test_framework == 'RSpec' %>
 ### RSpec Best Practices
 
+All API output must be validated using JSON schema validation with the 'json-schema' gem and appropriate matchers.
+
+```ruby
+RSpec::Matchers.define :match_response_schema do |schema|
+  match do |response|
+    schema_directory = "#{Dir.pwd}/spec/support/api/schemas"
+    schema_path = "#{schema_directory}/#{schema}.json"
+    JSON::Validator.validate!(schema_path, response.body, strict: true)
+  end
+end
+```
+
 ```ruby
 RSpec.describe User, type: :model do
   describe 'validations' do
@@ -48,6 +60,10 @@ RSpec.describe 'Users API', type: :request do
 
     it 'returns status code 200' do
       expect(response).to have_http_status(200)
+    end
+
+    it do
+      expect(response).to match_response_schema("user")
     end
   end
 end
